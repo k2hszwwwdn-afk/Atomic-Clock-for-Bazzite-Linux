@@ -9,7 +9,7 @@
     "Category": "Date and Time",
     "Description": "A calm green LED clock that follows the Atomic Time app",
     "EnabledByDefault": true,
-    "Icon": "chronometer",
+    "Icon": "atomic-time",
     "Id": "io.github.atomicclock.plasma",
     "License": "MIT",
     "Name": "Atomic Time",

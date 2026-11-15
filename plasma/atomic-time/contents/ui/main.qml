@@ -13,7 +13,8 @@ PlasmoidItem {
     property string millisecondText: "000"
     property string periodText: ""
     property string readoutText: "--:--:--.000"
-    readonly property color readoutColor: Plasmoid.configuration.readoutColor || "#57ef7e"
+    property color readoutColor: "#57ef7e"
+    property bool transparentBackground: true
     property int appHourFormat: 24
     property double appClockOffsetMs: 0
     property double appTimeZoneOffsetMs: 0
@@ -28,7 +29,7 @@ PlasmoidItem {
     property bool requestInProgress: false
     property int requestSequence: 0
 
-    Plasmoid.backgroundHints: Plasmoid.configuration.transparentBackground
+    Plasmoid.backgroundHints: root.transparentBackground
                               ? PlasmaCore.Types.NoBackground
                               : PlasmaCore.Types.DefaultBackground
 
@@ -37,6 +38,11 @@ PlasmoidItem {
 
     function pad(value, width) {
         return String(value).padStart(width, "0")
+    }
+
+    function reloadWidgetSettings() {
+        readoutColor = Plasmoid.configuration.readoutColor || "#57ef7e"
+        transparentBackground = Plasmoid.configuration.transparentBackground !== false
     }
 
     function updateDisplay() {
@@ -232,8 +238,8 @@ PlasmoidItem {
         Rectangle {
             anchors.fill: parent
             radius: 12
-            color: Plasmoid.configuration.transparentBackground ? "transparent" : "#101310"
-            border.color: Plasmoid.configuration.transparentBackground ? "transparent" : "#354238"
+            color: root.transparentBackground ? "transparent" : "#101310"
+            border.color: root.transparentBackground ? "transparent" : "#354238"
         }
 
         Text {
@@ -283,7 +289,15 @@ PlasmoidItem {
         onTriggered: root.readAppState()
     }
 
+    Timer {
+        interval: 250
+        repeat: true
+        running: true
+        onTriggered: root.reloadWidgetSettings()
+    }
+
     Component.onCompleted: {
+        reloadWidgetSettings()
         updateDisplay()
         readAppState()
     }

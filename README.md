@@ -10,7 +10,7 @@ From this folder, run:
 ./install.sh
 ```
 
-Then search for **Atomic Time** in the application launcher. On systems without the GTK/WebKit runtime, it falls back to an installed browser; the Firefox Flatpak receives read-only access to this app's folder so it can load the local page.
+Then search for **Atomic Time** in the application launcher. Its icon shows an atom around a clock set to 9:00. On systems without the GTK/WebKit runtime, it falls back to an installed browser; the Firefox Flatpak receives read-only access to this app's folder so it can load the local page.
 
 The installer copies the app to `~/.local/share/atomic-time` and adds a desktop entry and icon for your user; it does not change system files. To remove it, delete that app folder, `~/.local/share/applications/atomic-time.desktop`, and `~/.local/share/icons/hicolor/scalable/apps/atomic-time.svg`.
 
@@ -24,4 +24,4 @@ The Plasma 6 widget package is in `plasma/atomic-time`. Install it with:
 kpackagetool6 --type Plasma/Applet --install plasma/atomic-time
 ```
 
-The installer also installs the widget package. The native GTK/WebKit app shares its time zone, 12/24-hour format, and online clock correction with the widget through per-user state. If the app has not published state yet, the widget syncs independently in the system time zone. The browser-only fallback cannot publish shared state, so the widget keeps its independent sync while that fallback is in use. The widget shows only the time readout; resize it to scale the digits. Right-click it and choose **Configure** to pick a custom readout color or toggle the transparent background (on by default). A dark outline keeps the digits readable over wallpapers. The standalone app includes an **Add widget** button.
+The installer also installs the widget package. The native GTK/WebKit app shares its time zone, 12/24-hour format, and online clock correction with the widget through per-user state. If the app has not published state yet, the widget syncs independently in the system time zone. The browser-only fallback cannot publish shared state, so the widget keeps its independent sync while that fallback is in use. The widget shows only the time readout; resize it to scale the digits. Right-click it and choose **Configure** to pick a custom readout color or toggle the transparent background (on by default). These widget preferences are saved in Plasma's applet configuration; the per-user clock-state JSON only stores the app-synchronized time settings. A dark outline keeps the digits readable over wallpapers. The standalone app includes an **Add widget** button.
