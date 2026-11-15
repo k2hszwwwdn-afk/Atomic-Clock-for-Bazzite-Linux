@@ -7,7 +7,7 @@
       }
     ],
     "Category": "Date and Time",
-    "Description": "A calm green LED clock with online time sync",
+    "Description": "A calm green LED clock that follows the Atomic Time app",
     "EnabledByDefault": true,
     "Icon": "chronometer",
     "Id": "io.github.atomicclock.plasma",

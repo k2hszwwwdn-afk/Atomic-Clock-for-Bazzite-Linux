@@ -458,6 +458,30 @@
         statusDetailElement.textContent = detail;
       }
 
+      function timezoneOffsetMilliseconds(date) {
+        const offset = /^GMT([+-])(\d{1,2})(?::(\d{2}))?$/.exec(
+          formatParts(timezoneFormatter, date).timeZoneName || "GMT",
+        );
+        if (!offset) return 0;
+        const minutes = Number(offset[2]) * 60 + Number(offset[3] || 0);
+        return (offset[1] === "-" ? -minutes : minutes) * 60_000;
+      }
+
+      function publishClockState() {
+        const handler = window.webkit?.messageHandlers?.atomicTimeState;
+        if (!handler) return;
+
+        handler.postMessage(JSON.stringify({
+          version: 1,
+          timeZone: selectedTimezone,
+          hourFormat: use24Hour ? 24 : 12,
+          clockOffsetMs: clockOffset,
+          timeZoneOffsetMs: timezoneOffsetMilliseconds(new Date(Date.now() + clockOffset)),
+          synced: statusRow.dataset.state === "synced",
+          updatedAt: Date.now(),
+        }));
+      }
+
       function utcMilliseconds(data) {
         const fields = ["year", "month", "day", "hour", "minute", "seconds"];
         if (fields.every((field) => Number.isFinite(data[field]))) {
@@ -501,12 +525,14 @@
           clockOffset = serverTime - (requestStarted + requestFinished) / 2;
           updateStatus("synced", "Online sync", "UTC time source · syncing every minute");
           renderClock();
+          publishClockState();
         } catch (error) {
           clockOffset = 0;
           const detail = error.name === "AbortError"
             ? "Request timed out · showing device time"
             : "Source unavailable · showing device time";
           updateStatus("error", "Offline", detail);
+          publishClockState();
         } finally {
           clearTimeout(timeout);
           syncInProgress = false;
@@ -520,6 +546,7 @@
         selectedTimezone = timezoneSelect.value;
         configureFormatters();
         renderClock();
+        publishClockState();
       });
       syncButton.addEventListener("click", syncClock);
       document.querySelectorAll("[data-format]").forEach((button) => {
@@ -530,6 +557,7 @@
             option.setAttribute("aria-pressed", String(option === button));
           });
           renderClock();
+          publishClockState();
         });
       });
       document.addEventListener("visibilitychange", () => {
@@ -537,6 +565,7 @@
       });
 
       renderClock();
+      publishClockState();
       syncClock();
       function updateDisplay() {
         renderClock();
