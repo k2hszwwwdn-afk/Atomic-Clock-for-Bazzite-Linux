@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101112">
+    <title>Atomic Time</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #101112;
+        color: #ece9e6;
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        --led-green: #57ef7e;
+        --muted: #898582;
+        --panel: #191a1b;
+        --line: #2b2c2d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-width: 320px;
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 32px 20px;
+        background:
+          radial-gradient(ellipse at 50% 30%, rgb(87 239 126 / 5%), transparent 48%),
+          #101112;
+      }
+
+      main {
+        width: min(100%, 720px);
+      }
+
+      .eyebrow,
+      .control-label,
+      .status,
+      .timezone-offset {
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow {
+        margin: 0 0 18px;
+        color: var(--muted);
+        font-size: 11px;
+        text-align: center;
+      }
+
+      .clock {
+        overflow: hidden;
+        border: 1px solid #343333;
+        border-radius: 16px;
+        background: linear-gradient(155deg, #242323, #171717 54%, #131313);
+        box-shadow:
+          0 32px 80px rgb(0 0 0 / 44%),
+          inset 0 1px rgb(255 255 255 / 5%);
+      }
+
+      .display {
+        position: relative;
+        margin: 14px;
+        padding: clamp(30px, 8vw, 58px) 18px clamp(27px, 6vw, 42px);
+        border: 1px solid #1f2c22;
+        border-radius: 9px;
+        background:
+          radial-gradient(ellipse at 50% 0%, rgb(87 239 126 / 8%), transparent 66%),
+          linear-gradient(180deg, #0d100e, #090b09);
+        box-shadow: inset 0 5px 16px rgb(0 0 0 / 72%), 0 1px rgb(255 255 255 / 3%);
+        text-align: center;
+      }
+
+      .display::before,
+      .display::after {
+        position: absolute;
+        top: 50%;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #303832;
+        box-shadow: inset 0 1px 2px #090808;
+        content: "";
+      }
+
+      .display::before {
+        left: 12px;
+      }
+
+      .display::after {
+        right: 12px;
+      }
+
+      .time {
+        margin: 0;
+        color: var(--led-green);
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: clamp(2.3rem, 11vw, 6.25rem);
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        letter-spacing: 0.045em;
+        line-height: 1;
+        text-shadow:
+          0 0 5px rgb(87 239 126 / 82%),
+          0 0 18px rgb(73 235 112 / 46%),
+          0 0 42px rgb(73 235 112 / 20%);
+      }
+
+      .millisecond-separator,
+      .milliseconds {
+        color: #91f7a8;
+        font-size: 0.36em;
+        letter-spacing: 0.02em;
+        text-shadow: 0 0 10px rgb(87 239 126 / 40%);
+        vertical-align: 0.55em;
+      }
+
+      .day-period {
+        display: inline-block;
+        width: 2.5em;
+        color: #91f7a8;
+        font-size: 0.19em;
+        letter-spacing: 0.16em;
+        text-align: left;
+        text-shadow: 0 0 10px rgb(87 239 126 / 40%);
+        vertical-align: 0.7em;
+      }
+
+      .date {
+        margin: 22px 0 0;
+        color: #a8a09b;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+      }
+
+      .timezone {
+        display: flex;
+        align-items: baseline;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 12px;
+      }
+
+      .timezone-name {
+        overflow: hidden;
+        color: #e2d9d4;
+        font-size: 12px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .timezone-offset {
+        color: #827a76;
+        font-size: 10px;
+        white-space: nowrap;
+      }
+
+      .status-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        min-height: 42px;
+        border-top: 1px solid #292524;
+        color: #a9a19d;
+        font-size: 11px;
+      }
+
+      .status {
+        font-size: 9px;
+        letter-spacing: 0.1em;
+      }
+
+      .status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #8d5a35;
+        box-shadow: 0 0 8px rgb(141 90 53 / 55%);
+      }
+
+      .status-row[data-state="synced"] .status-dot {
+        background: #83b786;
+        box-shadow: 0 0 8px rgb(131 183 134 / 65%);
+      }
+
+      .status-row[data-state="error"] .status-dot {
+        background: #d3a85e;
+        box-shadow: 0 0 8px rgb(211 168 94 / 55%);
+      }
+
+      .status-detail {
+        color: #746d69;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .control {
+        display: grid;
+        gap: 8px;
+      }
+
+      .control-label {
+        color: #8f8985;
+        font-size: 10px;
+        letter-spacing: 0.1em;
+      }
+
+      select,
+      button {
+        min-height: 44px;
+        border: 1px solid #343536;
+        border-radius: 7px;
+        background: var(--panel);
+        color: #e8e5e2;
+        font: inherit;
+        font-size: 13px;
+      }
+
+      select {
+        width: 100%;
+        padding: 0 36px 0 13px;
+      }
+
+      button {
+        align-self: end;
+        padding: 0 16px;
+        cursor: pointer;
+        transition: border-color 140ms ease, background 140ms ease;
+      }
+
+      button:hover {
+        border-color: #42644a;
+        background: #182019;
+      }
+
+      button:focus-visible,
+      select:focus-visible {
+        outline: 2px solid #7cea98;
+        outline-offset: 3px;
+      }
+
+      button:disabled {
+        cursor: wait;
+        opacity: 0.7;
+      }
+
+      .format-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-top: 18px;
+        color: #8f8985;
+        font-size: 12px;
+      }
+
+      .format-toggle {
+        display: inline-flex;
+        overflow: hidden;
+        border: 1px solid #343536;
+        border-radius: 6px;
+        background: #171819;
+      }
+
+      .format-toggle button {
+        min-height: 32px;
+        border: 0;
+        border-radius: 0;
+        padding: 0 11px;
+        color: #8f8985;
+        font-size: 11px;
+      }
+
+      .format-toggle button[aria-pressed="true"] {
+        background: #1d3022;
+        color: #9af4ae;
+      }
+
+      .note {
+        margin: 16px 0 0;
+        color: #77716d;
+        font-size: 11px;
+        line-height: 1.6;
+        text-align: center;
+      }
+
+      @media (max-width: 480px) {
+        body {
+          padding: 20px 14px;
+        }
+
+        .display {
+          margin: 10px;
+          padding-right: 10px;
+          padding-left: 10px;
+        }
+
+        .controls {
+          grid-template-columns: 1fr;
+        }
+
+        .controls button {
+          min-height: 42px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">Precision time · Online UTC sync</p>
+      <section class="clock" aria-label="World clock">
+        <div class="display">
+          <p class="time" aria-label="Current time">
+            <span id="time">--:--:--</span><span class="millisecond-separator" aria-hidden="true">.</span><span class="milliseconds" id="milliseconds">---</span><span class="day-period" id="dayPeriod"></span>
+          </p>
+          <p class="date" id="date">Connecting to time service…</p>
+          <div class="timezone">
+            <span class="timezone-name" id="timezoneName">Local time zone</span>
+            <span class="timezone-offset" id="timezoneOffset"></span>
+          </div>
+        </div>
+        <div class="status-row" id="statusRow" data-state="connecting" role="status" aria-live="polite">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span class="status" id="status">Connecting</span>
+          <span class="status-detail" id="statusDetail">Contacting online time source</span>
+        </div>
+      </section>
+
+      <section class="controls" aria-label="Clock settings">
+        <label class="control">
+          <span class="control-label">Time zone</span>
+          <select id="timezoneSelect" aria-label="Choose a time zone"></select>
+        </label>
+        <button id="syncButton" type="button">Sync now</button>
+      </section>
+
+      <div class="format-row">
+        <span>Display format</span>
+        <div class="format-toggle" role="group" aria-label="Time format">
+          <button type="button" data-format="12" aria-pressed="false">12-hour</button>
+          <button type="button" data-format="24" aria-pressed="true">24-hour</button>
+        </div>
+      </div>
+      <p class="note">Time syncs automatically every minute. If the online source is unavailable, the display uses your device clock until it reconnects.</p>
+    </main>
+
+    <script>
+      const TIME_ENDPOINT = "https://timeapi.io/api/Time/current/zone?timeZone=UTC";
+      const SYNC_INTERVAL = 60_000;
+
+      const timeElement = document.querySelector("#time");
+      const millisecondsElement = document.querySelector("#milliseconds");
+      const dayPeriodElement = document.querySelector("#dayPeriod");
+      const dateElement = document.querySelector("#date");
+      const timezoneNameElement = document.querySelector("#timezoneName");
+      const timezoneOffsetElement = document.querySelector("#timezoneOffset");
+      const timezoneSelect = document.querySelector("#timezoneSelect");
+      const syncButton = document.querySelector("#syncButton");
+      const statusRow = document.querySelector("#statusRow");
+      const statusElement = document.querySelector("#status");
+      const statusDetailElement = document.querySelector("#statusDetail");
+
+      const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+      let selectedTimezone = localTimezone;
+      let use24Hour = true;
+      let clockOffset = 0;
+      let syncInProgress = false;
+      let timeFormatter;
+      let dateFormatter;
+      let timezoneFormatter;
+
+      function timezoneOptions() {
+        const supported = typeof Intl.supportedValuesOf === "function"
+          ? Intl.supportedValuesOf("timeZone")
+          : [
+              "America/Los_Angeles", "America/Denver", "America/Chicago", "America/New_York",
+              "America/Sao_Paulo", "Europe/London", "Europe/Paris", "Europe/Moscow",
+              "Asia/Dubai", "Asia/Kolkata", "Asia/Shanghai", "Asia/Tokyo",
+              "Australia/Sydney", "Pacific/Auckland", "UTC",
+            ];
+        return [...new Set([localTimezone, "UTC", ...supported])].sort((a, b) => a.localeCompare(b));
+      }
+
+      function populateTimezones() {
+        for (const timezone of timezoneOptions()) {
+          const option = document.createElement("option");
+          option.value = timezone;
+          option.textContent = timezone.replaceAll("_", " ");
+          timezoneSelect.append(option);
+        }
+        timezoneSelect.value = selectedTimezone;
+        if (!timezoneSelect.value) {
+          selectedTimezone = "UTC";
+          timezoneSelect.value = selectedTimezone;
+        }
+      }
+
+      function configureFormatters() {
+        timeFormatter = new Intl.DateTimeFormat("en-US", {
+          timeZone: selectedTimezone,
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hourCycle: use24Hour ? "h23" : "h12",
+        });
+        dateFormatter = new Intl.DateTimeFormat("en-US", {
+          timeZone: selectedTimezone,
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        });
+        timezoneFormatter = new Intl.DateTimeFormat("en-US", {
+          timeZone: selectedTimezone,
+          timeZoneName: "shortOffset",
+        });
+      }
+
+      function formatParts(formatter, date) {
+        return formatter.formatToParts(date)
+          .reduce((parts, part) => {
+            parts[part.type] = part.value;
+            return parts;
+          }, {});
+      }
+
+      function renderClock() {
+        const now = new Date(Date.now() + clockOffset);
+        const parts = formatParts(timeFormatter, now);
+        timeElement.textContent = `${parts.hour}:${parts.minute}:${parts.second}`;
+        millisecondsElement.textContent = String(now.getMilliseconds()).padStart(3, "0");
+        dayPeriodElement.textContent = use24Hour ? "" : parts.dayPeriod || "";
+
+        const dateParts = formatParts(dateFormatter, now);
+        dateElement.textContent = `${dateParts.weekday}, ${dateParts.month} ${dateParts.day}, ${dateParts.year}`;
+
+        timezoneNameElement.textContent = selectedTimezone.replaceAll("_", " ");
+        timezoneOffsetElement.textContent = formatParts(timezoneFormatter, now).timeZoneName || "";
+      }
+
+      function updateStatus(state, label, detail) {
+        statusRow.dataset.state = state;
+        statusElement.textContent = label;
+        statusDetailElement.textContent = detail;
+      }
+
+      function utcMilliseconds(data) {
+        const fields = ["year", "month", "day", "hour", "minute", "seconds"];
+        if (fields.every((field) => Number.isFinite(data[field]))) {
+          return Date.UTC(
+            data.year,
+            data.month - 1,
+            data.day,
+            data.hour,
+            data.minute,
+            data.seconds,
+            Number.isFinite(data.milliSeconds) ? data.milliSeconds : 0,
+          );
+        }
+        if (typeof data.dateTime === "string") {
+          const isoUtc = /(?:Z|[+-]\d{2}:\d{2})$/i.test(data.dateTime)
+            ? data.dateTime
+            : `${data.dateTime}Z`;
+          const parsed = Date.parse(isoUtc);
+          if (Number.isFinite(parsed)) return parsed;
+        }
+        throw new Error("The time service returned an invalid response.");
+      }
+
+      async function syncClock() {
+        if (syncInProgress) return;
+        syncInProgress = true;
+        syncButton.disabled = true;
+        updateStatus("connecting", "Syncing", "Contacting online time source");
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10_000);
+        const requestStarted = Date.now();
+        try {
+          const response = await fetch(TIME_ENDPOINT, {
+            cache: "no-store",
+            signal: controller.signal,
+          });
+          if (!response.ok) throw new Error(`Time service responded with HTTP ${response.status}.`);
+          const serverTime = utcMilliseconds(await response.json());
+          const requestFinished = Date.now();
+          clockOffset = serverTime - (requestStarted + requestFinished) / 2;
+          updateStatus("synced", "Online sync", "UTC time source · syncing every minute");
+          renderClock();
+        } catch (error) {
+          clockOffset = 0;
+          const detail = error.name === "AbortError"
+            ? "Request timed out · showing device time"
+            : "Source unavailable · showing device time";
+          updateStatus("error", "Offline", detail);
+        } finally {
+          clearTimeout(timeout);
+          syncInProgress = false;
+          syncButton.disabled = false;
+        }
+      }
+
+      populateTimezones();
+      configureFormatters();
+      timezoneSelect.addEventListener("change", () => {
+        selectedTimezone = timezoneSelect.value;
+        configureFormatters();
+        renderClock();
+      });
+      syncButton.addEventListener("click", syncClock);
+      document.querySelectorAll("[data-format]").forEach((button) => {
+        button.addEventListener("click", () => {
+          use24Hour = button.dataset.format === "24";
+          configureFormatters();
+          document.querySelectorAll("[data-format]").forEach((option) => {
+            option.setAttribute("aria-pressed", String(option === button));
+          });
+          renderClock();
+        });
+      });
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") syncClock();
+      });
+
+      renderClock();
+      syncClock();
+      function updateDisplay() {
+        renderClock();
+        requestAnimationFrame(updateDisplay);
+      }
+      requestAnimationFrame(updateDisplay);
+      setInterval(syncClock, SYNC_INTERVAL);
+    </script>
+  </body>
+</html>

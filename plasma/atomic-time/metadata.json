@@ -1,0 +1,19 @@
+{
+  "KPackageStructure": "Plasma/Applet",
+  "KPlugin": {
+    "Authors": [
+      {
+        "Name": "Atomic Time"
+      }
+    ],
+    "Category": "Date and Time",
+    "Description": "A calm green LED clock with online time sync",
+    "EnabledByDefault": true,
+    "Icon": "chronometer",
+    "Id": "io.github.atomicclock.plasma",
+    "License": "MIT",
+    "Name": "Atomic Time",
+    "Version": "1.0"
+  },
+  "X-Plasma-API-Minimum-Version": "6.0"
+}
